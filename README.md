@@ -1,14 +1,14 @@
-# Op-Integrations-Claw
+# Op-Integrations
 
-Optiply Singer taps, targets, and ETL notebooks — built and maintained by Aria 🔗
+Optiply Singer taps, targets, and ETL notebooks.
 
 ## Structure
 ```
-taps/          # Singer taps (extract from source systems)
-targets/       # Singer targets (load to Optiply)
+taps/          # Singer taps (extract from source systems) — each has its own repo
+targets/       # Singer targets (load to Optiply) — each has its own repo
 etl/           # ETL notebooks (transform between tap → target)
-docs/          # Integration documentation
-shared/        # Shared utilities, base classes
+docs/          # Integration documentation and data mappings
+shared/        # Shared utilities
 ```
 
 ## Stack
@@ -20,3 +20,9 @@ shared/        # Shared utilities, base classes
 ```
 Source System → Tap (extract) → Snapshot (cache) → ETL (transform) → Target (load) → Optiply
 ```
+
+## Integrations
+
+| Integration | Tap | Target | ETL | Docs |
+|---|---|---|---|---|
+| Extend Commerce (Lxir) | [tap-extend](https://github.com/joaoraposooptiply/tap-extend) | [target-extend](https://github.com/joaoraposooptiply/target-extend) | [etl/extend](etl/extend/) | [docs/extend](docs/extend/) |

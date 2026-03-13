@@ -1,0 +1,13 @@
+vault-backup/
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
+.venv/
+dist/
+*.ipynb_checkpoints/
+sync-output/
+etl-output/
+snapshots/
+hg-tap-exception-*.json
+config.json
