@@ -1,0 +1,238 @@
+{
+  "info": {
+    "name": "Extend Commerce (Lxir)",
+    "description": "Extend Commerce REST API v1.0 — used by tap-extend for MAXGAMING. Auth via ExtendBasicAuthorization header (Base64 username:password). Base URL: {{base_url}}/v1_0/{{client}}/",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://s05.extend.se/RESTAPI", "type": "string" },
+    { "key": "client", "value": "MAXGAMING", "type": "string" },
+    { "key": "username", "value": "", "type": "string" },
+    { "key": "password", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "List Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "ExtendBasicAuthorization",
+                "value": "Basic {{basic_token}}",
+                "description": "Base64(username:password) — set basic_token in env or pre-request script"
+              },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/Supplier?pageNumber=1",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "Supplier"],
+              "query": [
+                { "key": "pageNumber", "value": "1", "description": "1-based page number" }
+              ]
+            },
+            "description": "Returns SupplierList + paginationInfo. Company-level supplier entities. FULL_TABLE — no date filter."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Supplier Agreements",
+      "item": [
+        {
+          "name": "List Supplier Agreements",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/SupplierAgreement?pageNumber=1",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "SupplierAgreement"],
+              "query": [
+                { "key": "pageNumber", "value": "1", "description": "1-based page number" }
+              ]
+            },
+            "description": "Returns SupplierAgreementList + paginationInfo. Contract/brand-level — these are the Optiply Supplier entities (carry lead times, currency, payment terms). supplierNumber FK is NOT in list response, only in detail."
+          }
+        },
+        {
+          "name": "Get Supplier Agreement (detail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/SupplierAgreement/:id",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "SupplierAgreement", ":id"],
+              "variable": [{ "key": "id", "value": "", "description": "supplierAgreementNumber" }]
+            },
+            "description": "Detail includes supplierNumber (FK to parent Supplier company) — not returned by list endpoint."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/Products?pageCount=100&pageOffset=0&modifiedDateFrom=2026-01-01T00:00:00",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "Products"],
+              "query": [
+                { "key": "pageCount", "value": "100", "description": "Page size (NOT pageNumber)" },
+                { "key": "pageOffset", "value": "0", "description": "Offset in records" },
+                { "key": "modifiedDateFrom", "value": "2026-01-01T00:00:00", "description": "Incremental filter — ISO datetime" },
+                { "key": "modifiedDateTo", "value": "", "description": "Optional upper bound", "disabled": true }
+              ]
+            },
+            "description": "Returns a plain JSON array (no wrapper). One row per product-per-warehouse — deduplicate by productNumber. Pagination: pageCount + pageOffset (NOT pageNumber)."
+          }
+        },
+        {
+          "name": "Get Product (detail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/Products/:productNumber",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "Products", ":productNumber"],
+              "variable": [{ "key": "productNumber", "value": "", "description": "e.g. ART-12345" }]
+            },
+            "description": "Returns productSuppliers array (SupplierAgreement links per product). Key fields: supplierAgreementNumber, supplierAgreement, price (excl VAT), vatPercent, manufacturingLeadTimeHour, supplierProductNumber."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Orders",
+      "item": [
+        {
+          "name": "List Customer Orders (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/CustomerOrders?pageCount=100&pageOffset=0&modifiedDateFrom=2026-01-01T00:00:00",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "CustomerOrders"],
+              "query": [
+                { "key": "pageCount", "value": "100" },
+                { "key": "pageOffset", "value": "0" },
+                { "key": "modifiedDateFrom", "value": "2026-01-01T00:00:00", "description": "REQUIRED — omitting causes endpoint timeout" },
+                { "key": "changeDateTo", "value": "", "disabled": true }
+              ]
+            },
+            "description": "IMPORTANT: modifiedDateFrom is mandatory — without it the endpoint times out. Returns plain array. Pagination: pageCount + pageOffset."
+          }
+        },
+        {
+          "name": "Get Customer Order (detail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/CustomerOrders/:orderNumber",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "CustomerOrders", ":orderNumber"],
+              "variable": [{ "key": "orderNumber", "value": "" }]
+            },
+            "description": "Returns {orderHeader, orderRows}. Rows contain salesData.unitPrice (excl. VAT confirmed), salesData.vatPercent, product.productNumber. Freight rows have supplyMode=Freight — exclude from SellOrderLines."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        {
+          "name": "List Purchase Orders (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/PurchaseOrders?pageNumber=1&createDateFrom=2026-01-01T00:00:00",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "PurchaseOrders"],
+              "query": [
+                { "key": "pageNumber", "value": "1", "description": "1-based (NOT pageCount/pageOffset)" },
+                { "key": "createDateFrom", "value": "2026-01-01T00:00:00", "description": "Incremental filter" },
+                { "key": "createDateTo", "value": "", "disabled": true },
+                { "key": "IsReceived", "value": "", "disabled": true },
+                { "key": "IsOpen", "value": "", "disabled": true },
+                { "key": "warehouse", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Returns {purchaseOrderList, paginationInfo}. Pagination: pageNumber (1-based). Use paginationInfo.totalPages to stop."
+          }
+        },
+        {
+          "name": "Get Purchase Order (detail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "ExtendBasicAuthorization", "value": "Basic {{basic_token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1_0/{{client}}/PurchaseOrders/:purchaseNumber",
+              "host": ["{{base_url}}"],
+              "path": ["v1_0", "{{client}}", "PurchaseOrders", ":purchaseNumber"],
+              "variable": [{ "key": "purchaseNumber", "value": "", "description": "e.g. RP-10748" }]
+            },
+            "description": "Returns {header, rows, shipments}. header.supplier contains supplierAgreementNumber (FK to SupplierAgreement — use this for Optiply Supplier FK, NOT supplierNumber). rows[].unitDetails[] contains received units (qty per stocked unit) for ReceiptLines."
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-generate basic_token from username + password collection variables",
+          "const username = pm.variables.get('username');",
+          "const password = pm.variables.get('password');",
+          "if (username && password) {",
+          "    const token = btoa(username + ':' + password);",
+          "    pm.variables.set('basic_token', token);",
+          "}"
+        ]
+      }
+    }
+  ]
+}
