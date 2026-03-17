@@ -85,6 +85,15 @@ class TapExtend(Tap):
         ),
     ).to_dict()
 
+    def __init__(self, *args, **kwargs):
+        # HotGlue UI sends warehouse_codes as a comma-separated string; coerce to list.
+        config = kwargs.get("config") or (args[0] if args else {})
+        if isinstance(config, dict):
+            wc = config.get("warehouse_codes")
+            if isinstance(wc, str):
+                config["warehouse_codes"] = [c.strip() for c in wc.split(",") if c.strip()] or None
+        super().__init__(*args, **kwargs)
+
     def discover_streams(self) -> List:
         """Return stream instances."""
         return [
