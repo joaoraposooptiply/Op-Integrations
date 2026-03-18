@@ -312,50 +312,71 @@ class ProductSupplierAgreementsStream(ExtendStream):
         th.Property("quantityPerPurchaseProductUnit", th.NumberType),
     ).to_dict()
 
+    def _map(self, a: dict) -> dict:
+        return {
+            "productNumber": a.get("productNumber"),
+            "supplierAgreementNumber": a.get("supplierAgreementNumber"),
+            "supplierAgreementName": a.get("supplierAgreementName"),
+            "supplierName": a.get("supplierName"),
+            "supplierAgreementCurrencyId": a.get("supplierAgreementCurrencyId"),
+            "supplierProductNumber": a.get("supplierProductNumber"),
+            "supplierProductName": a.get("supplierProductName"),
+            "price": a.get("price"),
+            "vatPercent": a.get("vatPercent"),
+            "manufacturingLeadTimeHour": a.get("manufacturingLeadTimeHour"),
+            "supplierAgreementProductionLeadtimeHours": a.get("supplierAgreementProductionLeadtimeHours"),
+            "supplierAgreementTransportLeadtimeHours": a.get("supplierAgreementTransportLeadtimeHours"),
+            "inactive": a.get("inactive"),
+            "statisticalNumber": a.get("statisticalNumber"),
+            "country": a.get("country"),
+            "productUnitId": a.get("productUnitId"),
+            "useOtherPurchaseUnit": a.get("useOtherPurchaseUnit"),
+            "purchaseProductUnit": a.get("purchaseProductUnit"),
+            "quantityPerPurchaseProductUnit": a.get("quantityPerPurchaseProductUnit"),
+        }
+
     def get_records(self, context: Optional[dict] = None) -> Iterable[dict]:
-        page = 1
-        while True:
-            try:
-                data = self._request(
-                    f"{self.base_url}/ProductSupplierAgreements", params={"pageNumber": page}
-                ).json()
-            except requests.exceptions.HTTPError as exc:
-                # 400 = endpoint may not be enabled for this client — skip gracefully
+        url = f"{self.base_url}/ProductSupplierAgreements"
+
+        # Try paginated first (pageNumber=1)
+        try:
+            data = self._request(url, params={"pageNumber": 1}).json()
+        except requests.exceptions.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 400:
                 logger.warning(
-                    "ProductSupplierAgreements returned %s — skipping stream. "
-                    "SupplierProducts will be empty for this sync.",
-                    exc,
+                    "ProductSupplierAgreements: pageNumber rejected (400), "
+                    "trying unpaginated fallback"
                 )
-                return
-            items = data.get("productSupplierAgreementList", [])
-            pagination = data.get("paginationInfo", {})
+                # Fallback: call without pagination
+                try:
+                    data = self._request(url).json()
+                except requests.exceptions.HTTPError:
+                    logger.warning(
+                        "ProductSupplierAgreements: unpaginated also failed — "
+                        "skipping stream. SupplierProducts will be empty."
+                    )
+                    return
+            else:
+                raise
 
-            for a in items:
-                yield {
-                    "productNumber": a.get("productNumber"),
-                    "supplierAgreementNumber": a.get("supplierAgreementNumber"),
-                    "supplierAgreementName": a.get("supplierAgreementName"),
-                    "supplierName": a.get("supplierName"),
-                    "supplierAgreementCurrencyId": a.get("supplierAgreementCurrencyId"),
-                    "supplierProductNumber": a.get("supplierProductNumber"),
-                    "supplierProductName": a.get("supplierProductName"),
-                    "price": a.get("price"),
-                    "vatPercent": a.get("vatPercent"),
-                    "manufacturingLeadTimeHour": a.get("manufacturingLeadTimeHour"),
-                    "supplierAgreementProductionLeadtimeHours": a.get("supplierAgreementProductionLeadtimeHours"),
-                    "supplierAgreementTransportLeadtimeHours": a.get("supplierAgreementTransportLeadtimeHours"),
-                    "inactive": a.get("inactive"),
-                    "statisticalNumber": a.get("statisticalNumber"),
-                    "country": a.get("country"),
-                    "productUnitId": a.get("productUnitId"),
-                    "useOtherPurchaseUnit": a.get("useOtherPurchaseUnit"),
-                    "purchaseProductUnit": a.get("purchaseProductUnit"),
-                    "quantityPerPurchaseProductUnit": a.get("quantityPerPurchaseProductUnit"),
-                }
+        # Handle response — could be wrapped object or bare list
+        if isinstance(data, list):
+            for a in data:
+                yield self._map(a)
+            return
 
-            total_pages = pagination.get("totalPages", 0)
-            if page >= total_pages:
-                break
+        items = data.get("productSupplierAgreementList", [])
+        pagination = data.get("paginationInfo", {})
+        for a in items:
+            yield self._map(a)
+
+        # Continue paginating if there are more pages
+        total_pages = pagination.get("totalPages", 0)
+        page = 2
+        while page <= total_pages:
+            data = self._request(url, params={"pageNumber": page}).json()
+            for a in data.get("productSupplierAgreementList", []):
+                yield self._map(a)
             page += 1
 
 
