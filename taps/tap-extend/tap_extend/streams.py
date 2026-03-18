@@ -41,6 +41,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class _RetryableError(Exception):
+    """Raised for errors that should trigger backoff retry (429, 5xx)."""
+
+
 # ---------------------------------------------------------------------------
 # Shared base class
 # ---------------------------------------------------------------------------
@@ -72,12 +76,12 @@ class ExtendStream(Stream):
 
     @backoff.on_exception(
         backoff.expo,
-        (requests.exceptions.RequestException, ConnectionError, TimeoutError),
+        (requests.exceptions.ConnectionError, requests.exceptions.Timeout, _RetryableError),
         max_tries=5,
         factor=2,
     )
     def _request(self, url: str, params: Optional[dict] = None) -> requests.Response:
-        """GET with retry/backoff."""
+        """GET with retry/backoff.  Only retries on 429, 5xx, and connection errors."""
         response = self.session.get(url, params=params, timeout=120)
 
         if response.status_code == 401:
@@ -88,12 +92,13 @@ class ExtendStream(Stream):
             retry_after = int(response.headers.get("Retry-After", 30))
             logger.warning("Rate limited (429). Sleeping %ds.", retry_after)
             time.sleep(retry_after)
-            raise requests.exceptions.RequestException("Rate limited (429)")
+            raise _RetryableError("Rate limited (429)")
         if response.status_code >= 500:
-            raise requests.exceptions.RequestException(
+            raise _RetryableError(
                 f"Server error ({response.status_code}): {response.text[:300]}"
             )
 
+        # 4xx (except 429 handled above) are client errors — fail immediately, no retry
         response.raise_for_status()
         return response
 
@@ -310,9 +315,18 @@ class ProductSupplierAgreementsStream(ExtendStream):
     def get_records(self, context: Optional[dict] = None) -> Iterable[dict]:
         page = 1
         while True:
-            data = self._request(
-                f"{self.base_url}/ProductSupplierAgreements", params={"pageNumber": page}
-            ).json()
+            try:
+                data = self._request(
+                    f"{self.base_url}/ProductSupplierAgreements", params={"pageNumber": page}
+                ).json()
+            except requests.exceptions.HTTPError as exc:
+                # 400 = endpoint may not be enabled for this client — skip gracefully
+                logger.warning(
+                    "ProductSupplierAgreements returned %s — skipping stream. "
+                    "SupplierProducts will be empty for this sync.",
+                    exc,
+                )
+                return
             items = data.get("productSupplierAgreementList", [])
             pagination = data.get("paginationInfo", {})
 
