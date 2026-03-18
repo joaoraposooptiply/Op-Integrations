@@ -73,18 +73,14 @@ class TapExtend(Tap):
         ),
         th.Property(
             "warehouse_codes",
-            th.CustomType({"type": ["array", "string", "null"], "items": {"type": "string"}}),
+            th.StringType,
             required=False,
             description=(
-                "Optional list of warehouse codes to include. "
-                "If omitted, all warehouses are synced. "
-                "Can be a comma-separated string or a JSON array."
+                "Comma-separated warehouse codes to include. "
+                "If omitted, all warehouses are synced."
             ),
         ),
     ).to_dict()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     @property
     def warehouse_codes(self) -> list[str] | None:
