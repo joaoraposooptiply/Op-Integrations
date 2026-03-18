@@ -336,17 +336,63 @@ class ProductSupplierAgreementsStream(ExtendStream):
 
     def get_records(self, context: Optional[dict] = None) -> Iterable[dict]:
         url = f"{self.base_url}/ProductSupplierAgreements"
-        page = 1
+
+        # Try global paginated list first
+        try:
+            page = 1
+            while True:
+                data = self._request(url, params={"pageNumber": page}).json()
+                items = data.get("productSupplierAgreementList", [])
+                pagination = data.get("paginationInfo", {})
+                for a in items:
+                    yield self._map(a)
+                total_pages = pagination.get("totalPages", 0)
+                if page >= total_pages:
+                    break
+                page += 1
+            return
+        except requests.exceptions.HTTPError as exc:
+            if exc.response is None or exc.response.status_code != 400:
+                raise
+            logger.warning(
+                "ProductSupplierAgreements: global list returned 400 — "
+                "falling back to per-supplierAgreement iteration"
+            )
+
+        # Fallback: iterate by supplierAgreementNumber
+        seen_ids: set = set()
+        sa_page = 1
         while True:
-            data = self._request(url, params={"pageNumber": page}).json()
-            items = data.get("productSupplierAgreementList", [])
-            pagination = data.get("paginationInfo", {})
-            for a in items:
-                yield self._map(a)
-            total_pages = pagination.get("totalPages", 0)
-            if page >= total_pages:
+            sa_data = self._request(
+                f"{self.base_url}/SupplierAgreement",
+                params={"pageNumber": sa_page, "active": "true"},
+            ).json()
+            for agreement in sa_data.get("SupplierAgreementList", []):
+                sa_num = agreement.get("supplierAgreementNumber")
+                if sa_num is None or sa_num in seen_ids:
+                    continue
+                seen_ids.add(sa_num)
+                try:
+                    psa_page = 1
+                    while True:
+                        psa_data = self._request(
+                            url, params={"supplierAgreementNumber": sa_num, "pageNumber": psa_page}
+                        ).json()
+                        for a in psa_data.get("productSupplierAgreementList", []):
+                            yield self._map(a)
+                        psa_total = psa_data.get("paginationInfo", {}).get("totalPages", 0)
+                        if psa_page >= psa_total:
+                            break
+                        psa_page += 1
+                except requests.exceptions.HTTPError as e:
+                    logger.warning("PSA: skipping supplierAgreementNumber=%s (%s)", sa_num, e)
+
+            sa_pagination = sa_data.get("paginationInfo", {})
+            if sa_page >= sa_pagination.get("totalPages", 0):
                 break
-            page += 1
+            sa_page += 1
+
+        logger.info("ProductSupplierAgreements: per-SA iteration done (%d agreements)", len(seen_ids))
 
 
 # ---------------------------------------------------------------------------
