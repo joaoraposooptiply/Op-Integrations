@@ -73,24 +73,26 @@ class TapExtend(Tap):
         ),
         th.Property(
             "warehouse_codes",
-            th.ArrayType(th.StringType),
+            th.CustomType({"type": ["array", "string", "null"], "items": {"type": "string"}}),
             required=False,
             description=(
                 "Optional list of warehouse codes to include. "
                 "If omitted, all warehouses are synced. "
-                "Recommended: exclude MAXRMA (RMA/returns warehouse)."
+                "Can be a comma-separated string or a JSON array."
             ),
         ),
     ).to_dict()
 
     def __init__(self, *args, **kwargs):
-        # HotGlue UI sends warehouse_codes as a comma-separated string; coerce to list.
-        config = kwargs.get("config") or (args[0] if args else {})
-        if isinstance(config, dict):
-            wc = config.get("warehouse_codes")
-            if isinstance(wc, str):
-                config["warehouse_codes"] = [c.strip() for c in wc.split(",") if c.strip()] or None
         super().__init__(*args, **kwargs)
+
+    @property
+    def warehouse_codes(self) -> list[str] | None:
+        """Return warehouse_codes as a list, coercing from string if needed."""
+        wc = self.config.get("warehouse_codes")
+        if isinstance(wc, str):
+            return [c.strip() for c in wc.split(",") if c.strip()] or None
+        return wc or None
 
     def discover_streams(self) -> List:
         """Return stream instances."""
