@@ -327,7 +327,7 @@ class ProductsStream(ExtendStream):
         while True:
             params: dict[str, Any] = {"pageCount": page_count, "pageOffset": page_offset}
             if modified_date_from:
-                params["modifiedDateFrom"] = modified_date_from
+                params["createDateFrom"] = modified_date_from
 
             product_list = self._request(
                 f"{self.base_url}/Products", params=params
@@ -629,8 +629,8 @@ class PurchaseOrdersStream(ExtendStream):
 
     def _map_detail(self, detail: dict, summary: dict) -> dict:
         header = detail.get("header", {}) or {}
-        rows = detail.get("rows", [])
-        shipments = detail.get("shipments", [])
+        rows = detail.get("rows", []) or []
+        shipments = detail.get("shipments", []) or []
         supplier = header.get("supplier", {}) or {}
         delivery_addr = header.get("deliveryAddress", {}) or {}
         buyer = header.get("buyerContact", {}) or {}
