@@ -56,8 +56,14 @@ class HotglueStream(RESTStream):
                 response,
             )
         if 400 <= response.status_code < 500:
-            # 404 on tenant-specific endpoints is expected (deleted/inactive tenants)
-            if response.status_code == 404:
+            # 404/400 on tenant-specific endpoints is expected (deleted/inactive tenants, bad config)
+            if response.status_code in (400, 404):
+                self.logger.warning(
+                    "Skipping %s (%d): %s",
+                    self.name,
+                    response.status_code,
+                    response.text[:200],
+                )
                 return None
             raise FatalAPIError(
                 f"Client error ({response.status_code}): {response.text[:200]}"
@@ -65,7 +71,7 @@ class HotglueStream(RESTStream):
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and yield records."""
-        if response.status_code == 404:
+        if response.status_code in (400, 404):
             return
 
         try:

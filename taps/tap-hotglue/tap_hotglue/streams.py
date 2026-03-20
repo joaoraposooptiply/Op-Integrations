@@ -170,13 +170,16 @@ class LinkedFlowsStream(HotglueStream):
     def post_process(self, row: dict, context: Optional[dict]) -> dict:
         if context:
             row["tenant_id"] = context["tenant_id"]
+        # API returns "id" — map to "flow_id"
+        if "id" in row:
+            row["flow_id"] = row.pop("id")
         return row
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Pass tenant_id + flow_id to grandchild streams."""
         return {
             "tenant_id": record.get("tenant_id") or (context or {}).get("tenant_id"),
-            "flow_id": record.get("flow_id"),
+            "flow_id": record.get("flow_id") or record.get("id"),
         }
 
 
