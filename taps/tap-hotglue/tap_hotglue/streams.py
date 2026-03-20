@@ -222,6 +222,36 @@ class LinkedSourcesStream(HotglueStream):
         return row
 
 
+class LinkedTargetsStream(HotglueStream):
+    """Target configuration per tenant/flow."""
+
+    name = "linked_targets"
+    primary_keys = ["tenant_id", "flow_id", "target"]
+    replication_key = None
+    records_jsonpath = "$[*]"
+    parent_stream_type = LinkedFlowsStream
+
+    schema = th.PropertiesList(
+        th.Property("tenant_id", th.StringType),
+        th.Property("flow_id", th.StringType),
+        th.Property("target", th.StringType),
+        th.Property("config", th.CustomType({"type": ["object", "string"]})),
+        th.Property("field_map", th.CustomType({"type": ["object", "array", "string"]})),
+        th.Property("status", th.StringType),
+        th.Property("schedule", th.StringType),
+    ).to_dict()
+
+    @property
+    def path(self) -> str:
+        return f"/{self.env_id}/{{flow_id}}/{{tenant_id}}/linkedTargets"
+
+    def post_process(self, row: dict, context: Optional[dict]) -> dict:
+        if context:
+            row["tenant_id"] = context["tenant_id"]
+            row["flow_id"] = context["flow_id"]
+        return row
+
+
 class SourceStateStream(HotglueStream):
     """Source bookmark/state for incremental sync tracking per tenant/flow."""
 

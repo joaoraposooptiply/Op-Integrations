@@ -10,6 +10,7 @@ from tap_hotglue.streams import (
     JobsStream,
     LinkedFlowsStream,
     LinkedSourcesStream,
+    LinkedTargetsStream,
     SourceStateStream,
     TenantConfigStream,
     TenantMappingStream,
@@ -23,6 +24,7 @@ STREAM_TYPES = [
     TenantMappingStream,
     LinkedFlowsStream,
     LinkedSourcesStream,
+    LinkedTargetsStream,
     SourceStateStream,
     JobsStream,
 ]
