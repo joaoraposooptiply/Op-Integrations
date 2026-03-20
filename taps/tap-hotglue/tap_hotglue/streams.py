@@ -368,7 +368,7 @@ class JobsStream(HotglueStream):
         if "tenant" in row and "tenant_id" not in row:
             row["tenant_id"] = row.pop("tenant")
         return _stringify(row, [
-            "scheduled_job", "streaming_job", "duration",
+            "scheduled_job", "streaming_job", "duration", "error",
             "task_definition", "resources_usage", "status_timestamp",
             "data_sizes", "metrics",
         ])
